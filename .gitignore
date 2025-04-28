@@ -1,0 +1,58 @@
+# Environment variables
+.env
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Build output
+*.out
+*.test
+
+# Go workspace file (optional, if using Go workspaces)
+go.work
+go.work.sum
+
+# Logs and runtime files
+*.log
+
+# Dependency directories (if any vendoring is used)
+vendor/
+
+# Temporary files
+*.tmp
+*.swp
+
+# IDE/editor settings (common ones)
+.vscode/
+.idea/
+*.iml
+
+# Static file cache or temp files (if any get generated)
+static/*.tmp
+static/*.cache
+
+# Ignore static server build artifacts (if compiled manually)
+static_server/*.out
+static_server/*.exe
+
+# # Test binary artifacts
+# echo_api/*.test
+# gin_api/*.test
+# http_api/*.test

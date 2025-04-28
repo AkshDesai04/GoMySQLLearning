@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .api-options {
+            display: flex;
+            gap: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>City API Tester</h1>
+        
+        <div class="input-group">
+            <label for="search">Search:</label>
+            <input type="text" id="search" placeholder="Enter search term">
+        </div>
+
+        <div class="api-options">
+            <label>
+                <input type="radio" name="api" value="http" checked> HTTP API
+            </label>
+            <label>
+                <input type="radio" name="api" value="echo"> Echo API
+            </label>
+            <label>
+                <input type="radio" name="api" value="gin"> Gin API
+            </label>
+        </div>
+
+        <div class="button-group">
+            <button onclick="runTest()">Run</button>
+            <button onclick="clearResults()">Clear</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const ports = {
+            http: 8080,
+            echo: 8081,
+            gin: 8082
+        };
+
+        function runTest() {
+            const selectedApi = document.querySelector('input[name="api"]:checked').value;
+            const searchTerm = document.getElementById('search').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Loading...';
+
+            fetch(`http://localhost:${ports[selectedApi]}/cities`)
+                .then(response => response.json())
+                .then(data => {
+                    let filteredData = data.cities;
+                    if (searchTerm) {
+                        const term = searchTerm.toLowerCase();
+                        filteredData = data.cities.filter(city => 
+                            city.name.toLowerCase().includes(term) ||
+                            city.country_code.toLowerCase().includes(term) ||
+                            city.district.toLowerCase().includes(term)
+                        );
+                    }
+                    resultDiv.innerHTML = `<pre>${JSON.stringify(filteredData, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `Error: ${error.message}`;
+                });
+        }
+
+        function clearResults() {
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('search').value = '';
+        }
+    </script>
+</body>
+</html> 
