@@ -34,7 +34,7 @@ A learning project that demonstrates the integration of MySQL with three differe
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/AkshDesai04/GoMySQLLearning/](https://github.com/AkshDesai04/GoMySQLLearning.git)
+   git clone https://github.com/AkshDesai04/GoMySQLLearning/
    cd GoMySQLLearning
    ```
 
