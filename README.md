@@ -34,13 +34,13 @@ A learning project that demonstrates the integration of MySQL with three differe
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone [https://github.com/AkshDesai04/GoMySQLLearning/](https://github.com/AkshDesai04/GoMySQLLearning.git)
    cd GoMySQLLearning
    ```
 
 2. **Initialize Go module**
    ```bash
-   go mod init github.com/yourusername/GoMySQLLearning
+   go mod init github.com/AkshDesai04/GoMySQLLearning
    ```
 
 3. **Install required packages**
