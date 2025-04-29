@@ -55,6 +55,15 @@
             background-color: #f2f2f2;
             position: sticky;
             top: 0;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #e0e0e0;
+        }
+        .sort-header {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         tr:hover {
             background-color: #f5f5f5;
@@ -101,6 +110,21 @@
             gin: 8082
         };
 
+        let currentSort = {
+            field: '',
+            direction: 'asc'
+        };
+
+        function sortBy(field) {
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            runTest();
+        }
+
         function runTest() {
             const selectedApi = document.querySelector('input[name="api"]:checked').value;
             const searchTerm = document.getElementById('search').value;
@@ -108,29 +132,51 @@
             
             resultDiv.innerHTML = 'Loading...';
 
-            fetch(`http://localhost:${ports[selectedApi]}/cities`)
+            // Build URL with query parameters
+            const url = new URL(`http://localhost:${ports[selectedApi]}/cities`);
+            if (searchTerm) {
+                url.searchParams.append('search', searchTerm);
+            }
+            if (currentSort.field) {
+                url.searchParams.append('sort_field', currentSort.field);
+                url.searchParams.append('sort_dir', currentSort.direction);
+            }
+
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     let filteredData = data.cities;
-                    if (searchTerm) {
-                        const term = searchTerm.toLowerCase();
-                        filteredData = data.cities.filter(city => 
-                            city.name.toLowerCase().includes(term) ||
-                            city.country_code.toLowerCase().includes(term) ||
-                            city.district.toLowerCase().includes(term)
-                        );
-                    }
                     
                     // Create table HTML
                     let tableHTML = `
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Country Code</th>
-                                    <th>District</th>
-                                    <th>Population</th>
+                                    <th onclick="sortBy('id')">
+                                        <div class="sort-header">
+                                            ID ${getSortIndicator('id')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('name')">
+                                        <div class="sort-header">
+                                            Name ${getSortIndicator('name')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('country_code')">
+                                        <div class="sort-header">
+                                            Country Code ${getSortIndicator('country_code')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('district')">
+                                        <div class="sort-header">
+                                            District ${getSortIndicator('district')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('population')">
+                                        <div class="sort-header">
+                                            Population ${getSortIndicator('population')}
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -160,9 +206,15 @@
                 });
         }
 
+        function getSortIndicator(field) {
+            if (currentSort.field !== field) return '';
+            return currentSort.direction === 'asc' ? '↑' : '↓';
+        }
+
         function clearResults() {
             document.getElementById('result').innerHTML = '';
             document.getElementById('search').value = '';
+            currentSort = { field: '', direction: 'asc' };
         }
     </script>
 </body>

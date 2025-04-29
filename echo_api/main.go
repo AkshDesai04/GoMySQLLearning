@@ -3,41 +3,40 @@ package main
 import (
 	"net/http"
 
+	"github.com/akshd/GoMySQLLearning/core/sort"
 	"github.com/akshd/GoMySQLLearning/db"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	e := echo.New()
-
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			c.Response().Header().Set("Access-Control-Allow-Origin", "*")
-			c.Response().Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-			c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			if c.Request().Method == http.MethodOptions {
-				return c.NoContent(http.StatusOK)
-			}
-			return next(c)
-		}
-	})
+	e.Use(middleware.CORS())
 
 	e.GET("/cities", handleCities)
-
 	e.Logger.Fatal(e.Start(":8081"))
 }
 
 func handleCities(c echo.Context) error {
+	searchTerm := c.QueryParam("search")
+	sortField := c.QueryParam("sort_field")
+	sortDir := c.QueryParam("sort_dir")
+
 	dbConn, err := db.ConnectDB()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return err
 	}
 	defer dbConn.Close()
 
-	searchTerm := c.QueryParam("search")
 	cities, err := db.GetCities(dbConn, searchTerm)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return err
+	}
+
+	// Apply sorting if sort field is specified
+	if sortField != "" {
+		sorter := sort.NewCitySorter()
+		cities = sorter.SortCities(cities, sortField, sortDir)
 	}
 
 	response := db.APIResponse{
