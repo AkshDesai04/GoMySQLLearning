@@ -41,6 +41,24 @@
             max-height: 400px;
             overflow-y: auto;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
         pre {
             white-space: pre-wrap;
             word-wrap: break-word;
@@ -102,7 +120,40 @@
                             city.district.toLowerCase().includes(term)
                         );
                     }
-                    resultDiv.innerHTML = `<pre>${JSON.stringify(filteredData, null, 2)}</pre>`;
+                    
+                    // Create table HTML
+                    let tableHTML = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Country Code</th>
+                                    <th>District</th>
+                                    <th>Population</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    filteredData.forEach(city => {
+                        tableHTML += `
+                            <tr>
+                                <td>${city.id}</td>
+                                <td>${city.name}</td>
+                                <td>${city.country_code}</td>
+                                <td>${city.district}</td>
+                                <td>${city.population.toLocaleString()}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    resultDiv.innerHTML = tableHTML;
                 })
                 .catch(error => {
                     resultDiv.innerHTML = `Error: ${error.message}`;
