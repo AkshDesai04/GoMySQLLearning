@@ -28,6 +28,8 @@
         .button-group {
             display: flex;
             gap: 10px;
+            margin-top: 10px;
+            justify-content: flex-end;
         }
         button {
             padding: 8px 16px;
@@ -40,6 +42,7 @@
             min-height: 200px;
             max-height: 400px;
             overflow-y: auto;
+            position: relative;
         }
         table {
             width: 100%;
@@ -55,6 +58,15 @@
             background-color: #f2f2f2;
             position: sticky;
             top: 0;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #e0e0e0;
+        }
+        .sort-header {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         tr:hover {
             background-color: #f5f5f5;
@@ -62,6 +74,63 @@
         pre {
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .toast.success {
+            background-color: #4CAF50;
+        }
+        .toast.error {
+            background-color: #f44336;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .refresh-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .refresh-btn:hover {
+            background-color: #45a049;
+        }
+        .action-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .action-btn:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
@@ -71,7 +140,7 @@
         
         <div class="input-group">
             <label for="search">Search:</label>
-            <input type="text" id="search" placeholder="Enter search term">
+            <input type="text" id="search" placeholder="Enter search term" onkeydown="handleKeyPress(event)">
         </div>
 
         <div class="api-options">
@@ -86,13 +155,16 @@
             </label>
         </div>
 
-        <div class="button-group">
-            <button onclick="runTest()">Run</button>
-            <button onclick="clearResults()">Clear</button>
+        <div id="result">
         </div>
 
-        <div id="result"></div>
+        <div class="button-group">
+            <button onclick="clearResults()">Clear</button>
+            <button class="action-btn" onclick="runTest()">Run</button>
+        </div>
     </div>
+
+    <div id="toast" class="toast"></div>
 
     <script>
         const ports = {
@@ -101,6 +173,56 @@
             gin: 8082
         };
 
+        let currentSort = {
+            field: '',
+            direction: 'asc'
+        };
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${isError ? 'error' : 'success'} show`;
+            
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 5000);
+        }
+
+        function updateCity(cityId, field, value) {
+            const selectedApi = document.querySelector('input[name="api"]:checked').value;
+            const url = `http://localhost:${ports[selectedApi]}/cities/${cityId}`;
+            
+            fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    [field]: value
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Update failed');
+                }
+                showToast('Update successful');
+                runTest(); // Refresh the table
+            })
+            .catch(error => {
+                showToast(error.message, true);
+            });
+        }
+
+        function sortBy(field) {
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            runTest();
+        }
+
         function runTest() {
             const selectedApi = document.querySelector('input[name="api"]:checked').value;
             const searchTerm = document.getElementById('search').value;
@@ -108,29 +230,49 @@
             
             resultDiv.innerHTML = 'Loading...';
 
-            fetch(`http://localhost:${ports[selectedApi]}/cities`)
+            const url = new URL(`http://localhost:${ports[selectedApi]}/cities`);
+            if (searchTerm) {
+                url.searchParams.append('search', searchTerm);
+            }
+            if (currentSort.field) {
+                url.searchParams.append('sort_field', currentSort.field);
+                url.searchParams.append('sort_dir', currentSort.direction);
+            }
+
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     let filteredData = data.cities;
-                    if (searchTerm) {
-                        const term = searchTerm.toLowerCase();
-                        filteredData = data.cities.filter(city => 
-                            city.name.toLowerCase().includes(term) ||
-                            city.country_code.toLowerCase().includes(term) ||
-                            city.district.toLowerCase().includes(term)
-                        );
-                    }
                     
-                    // Create table HTML
                     let tableHTML = `
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Country Code</th>
-                                    <th>District</th>
-                                    <th>Population</th>
+                                    <th onclick="sortBy('id')">
+                                        <div class="sort-header">
+                                            ID ${getSortIndicator('id')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('name')">
+                                        <div class="sort-header">
+                                            Name ${getSortIndicator('name')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('country_code')">
+                                        <div class="sort-header">
+                                            Country Code ${getSortIndicator('country_code')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('district')">
+                                        <div class="sort-header">
+                                            District ${getSortIndicator('district')}
+                                        </div>
+                                    </th>
+                                    <th onclick="sortBy('population')">
+                                        <div class="sort-header">
+                                            Population ${getSortIndicator('population')}
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -140,10 +282,10 @@
                         tableHTML += `
                             <tr>
                                 <td>${city.id}</td>
-                                <td>${city.name}</td>
-                                <td>${city.country_code}</td>
-                                <td>${city.district}</td>
-                                <td>${city.population.toLocaleString()}</td>
+                                <td><input type="text" value="${city.name}" onchange="updateCity(${city.id}, 'name', this.value)"></td>
+                                <td><input type="text" value="${city.country_code}" onchange="updateCity(${city.id}, 'country_code', this.value)"></td>
+                                <td><input type="text" value="${city.district}" onchange="updateCity(${city.id}, 'district', this.value)"></td>
+                                <td><input type="number" value="${city.population}" onchange="updateCity(${city.id}, 'population', this.value)"></td>
                             </tr>
                         `;
                     });
@@ -160,9 +302,21 @@
                 });
         }
 
+        function getSortIndicator(field) {
+            if (currentSort.field !== field) return '';
+            return currentSort.direction === 'asc' ? '↑' : '↓';
+        }
+
         function clearResults() {
             document.getElementById('result').innerHTML = '';
             document.getElementById('search').value = '';
+            currentSort = { field: '', direction: 'asc' };
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                runTest();
+            }
         }
     </script>
 </body>
