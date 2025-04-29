@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/akshd/GoMySQLLearning/core/sort"
 	"github.com/akshd/GoMySQLLearning/db"
@@ -14,6 +15,7 @@ func main() {
 	e.Use(middleware.CORS())
 
 	e.GET("/cities", handleCities)
+	e.PUT("/cities/:id", handleCityUpdate)
 	e.Logger.Fatal(e.Start(":8081"))
 }
 
@@ -47,4 +49,45 @@ func handleCities(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response)
+}
+
+func handleCityUpdate(c echo.Context) error {
+	// Extract city ID from URL
+	cityID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid city ID")
+	}
+
+	// Parse request body
+	var updateData map[string]interface{}
+	if err := c.Bind(&updateData); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
+	}
+
+	// Get field and value from request
+	if len(updateData) != 1 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Only one field can be updated at a time")
+	}
+
+	var field string
+	var value interface{}
+	for k, v := range updateData {
+		field = k
+		value = v
+		break
+	}
+
+	// Connect to database
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		return err
+	}
+	defer dbConn.Close()
+
+	// Update city
+	if err := db.UpdateCity(dbConn, cityID, field, value); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
 }

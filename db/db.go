@@ -93,3 +93,26 @@ func GetCities(db *sql.DB, searchTerm string) ([]City, error) {
 
 	return cities, nil
 }
+
+// UpdateCity updates a specific field of a city in the database
+func UpdateCity(db *sql.DB, cityID int, field string, value interface{}) error {
+	// Validate field name to prevent SQL injection
+	validFields := map[string]bool{
+		"name":         true,
+		"country_code": true,
+		"district":     true,
+		"population":   true,
+	}
+
+	if !validFields[field] {
+		return fmt.Errorf("invalid field name: %s", field)
+	}
+
+	query := fmt.Sprintf("UPDATE city SET %s = ? WHERE id = ?", field)
+	_, err := db.Exec(query, value, cityID)
+	if err != nil {
+		return fmt.Errorf("failed to update city: %v", err)
+	}
+
+	return nil
+}
