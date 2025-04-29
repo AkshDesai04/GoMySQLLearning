@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/akshd/GoMySQLLearning/core/sort"
 	"github.com/akshd/GoMySQLLearning/db"
 )
 
@@ -29,6 +30,9 @@ func handleCities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	searchTerm := r.URL.Query().Get("search")
+	sortField := r.URL.Query().Get("sort_field")
+	sortDir := r.URL.Query().Get("sort_dir")
+
 	dbConn, err := db.ConnectDB()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -40,6 +44,12 @@ func handleCities(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Apply sorting if sort field is specified
+	if sortField != "" {
+		sorter := sort.NewCitySorter()
+		cities = sorter.SortCities(cities, sortField, sortDir)
 	}
 
 	response := db.APIResponse{

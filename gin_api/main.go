@@ -35,10 +35,18 @@ func handleCities(c *gin.Context) {
 	defer dbConn.Close()
 
 	searchTerm := c.Query("search")
+	sortField := c.Query("sort_field")
+	sortDir := c.Query("sort_dir")
+
 	cities, err := db.GetCities(dbConn, searchTerm)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Apply sorting if sort field is specified
+	if sortField != "" {
+		cities = db.MergeSort(cities, sortField, sortDir)
 	}
 
 	response := db.APIResponse{

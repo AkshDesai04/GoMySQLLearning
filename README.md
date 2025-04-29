@@ -10,6 +10,10 @@ A learning project that demonstrates the integration of MySQL with three differe
 - Modern web interface for testing
 - Comprehensive test coverage
 - Environment variable configuration
+- Interactive table sorting with merge sort implementation
+  - Sort by any column (ID, Name, Country Code, District, Population)
+  - Toggle between ascending and descending order
+  - Visual indicators for current sort column and direction
 
 ## Prerequisites
 
@@ -22,6 +26,8 @@ A learning project that demonstrates the integration of MySQL with three differe
 ```
 .
 ├── db/                 # Database connection and queries
+│   ├── db.go          # Database operations
+│   └── sort.go        # Merge sort implementation
 ├── http_api/          # Standard HTTP API implementation
 ├── echo_api/          # Echo framework API implementation
 ├── gin_api/           # Gin framework API implementation
@@ -34,13 +40,13 @@ A learning project that demonstrates the integration of MySQL with three differe
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/AkshDesai04/GoMySQLLearning/
+   git clone <repository-url>
    cd GoMySQLLearning
    ```
 
 2. **Initialize Go module**
    ```bash
-   go mod init github.com/AkshDesai04/GoMySQLLearning
+   go mod init github.com/yourusername/GoMySQLLearning
    ```
 
 3. **Install required packages**
@@ -106,31 +112,71 @@ A learning project that demonstrates the integration of MySQL with three differe
 
 To run all tests:
 ```bash
-go test ./http_api ./echo_api ./gin_api -v
+go test ./... -v
 ```
 
-To run tests for a specific API:
+To run tests for specific components:
 ```bash
+# Database and sorting tests
+go test ./db -v
+
+# HTTP API tests
 go test ./http_api -v
+
+# Echo API tests
 go test ./echo_api -v
+
+# Gin API tests
 go test ./gin_api -v
 ```
+
+### Test Coverage
+
+To generate test coverage reports:
+```bash
+# Generate coverage profile
+go test ./... -coverprofile=coverage.out
+
+# View coverage in browser
+go tool cover -html=coverage.out
+```
+
+### Sorting Tests
+
+The project includes comprehensive tests for the merge sort implementation:
+- Tests for all sortable fields (ID, Name, Country Code, District, Population)
+- Tests for both ascending and descending order
+- Tests for edge cases (empty slice, single element)
+- Tests for stability (maintaining order of equal elements)
 
 ### API Testing with Postman
 
 All APIs support the following endpoint:
 - **URL:** `http://localhost:{port}/cities`
 - **Method:** GET
-- **Query Parameter:** `search` (optional)
+- **Query Parameters:**
+  - `search` (optional): Filter cities by name, country code, or district
+  - `sort_field` (optional): Field to sort by (id, name, country_code, district, population)
+  - `sort_dir` (optional): Sort direction (asc, desc)
 
 Port numbers:
 - HTTP API: 8080
 - Echo API: 8081
 - Gin API: 8082
 
-Example request:
+Example requests:
 ```
+# Basic request
+GET http://localhost:8080/cities
+
+# With search
 GET http://localhost:8080/cities?search=London
+
+# With sorting
+GET http://localhost:8080/cities?sort_field=population&sort_dir=desc
+
+# Combined search and sort
+GET http://localhost:8080/cities?search=London&sort_field=population&sort_dir=desc
 ```
 
 ### Web Interface Testing
@@ -139,15 +185,16 @@ GET http://localhost:8080/cities?search=London
 2. Enter a search term in the text field
 3. Select an API using the radio buttons
 4. Click "Run" to execute the query
-5. Results will be displayed below
-6. Use "Clear" to reset the form
+5. Click on any column header to sort by that field
+6. Click again to toggle between ascending and descending order
+7. Use "Clear" to reset the form
 
 ## Security Considerations
 
 - Database credentials are stored in `.env` file
 - `.env` is included in `.gitignore` to prevent accidental commits
 - CORS is properly configured for all APIs
-- Input validation is implemented for search queries
+- Input validation is implemented for search queries and sort parameters
 
 ## Contributing
 
