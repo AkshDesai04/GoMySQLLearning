@@ -78,13 +78,15 @@
         .toast {
             position: fixed;
             bottom: 20px;
-            right: 20px;
-            padding: 15px;
+            right: 120px;
+            padding: 10px 20px;
             border-radius: 5px;
             color: white;
             font-weight: bold;
             opacity: 0;
             transition: opacity 0.5s;
+            border: none;
+            cursor: pointer;
         }
         .toast.success {
             background-color: #4CAF50;
@@ -132,6 +134,43 @@
         .action-btn:hover {
             background-color: #45a049;
         }
+        .geek-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .geek-btn:hover {
+            background-color: #1976D2;
+        }
+        .debug-table {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .debug-table th, .debug-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .debug-table th {
+            background-color: #f2f2f2;
+        }
+        .debug-content {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f8f8f8;
+            padding: 5px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -158,11 +197,16 @@
         <div id="result">
         </div>
 
+        <div id="debug-table-container">
+        </div>
+
         <div class="button-group">
             <button onclick="clearResults()">Clear</button>
             <button class="action-btn" onclick="runTest()">Run</button>
         </div>
     </div>
+
+    <button class="geek-btn" onclick="toggleGeekMode()">Geek</button>
 
     <div id="toast" class="toast"></div>
 
@@ -178,6 +222,12 @@
             direction: 'asc'
         };
 
+        let isGeekMode = false;
+        let lastApiCall = '';
+        let lastApiResponse = '';
+        let apiCallHistory = [];
+        let serialNumber = 1;
+
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -192,6 +242,9 @@
             const selectedApi = document.querySelector('input[name="api"]:checked').value;
             const url = `http://localhost:${ports[selectedApi]}/cities/${cityId}`;
             
+            // Store the API call details
+            lastApiCall = `PUT ${url}\nHeaders:\n  Content-Type: application/json\nBody:\n  ${JSON.stringify({ [field]: value }, null, 2)}`;
+
             fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -205,11 +258,15 @@
                 if (!response.ok) {
                     throw new Error('Update failed');
                 }
+                // Store the API response details
+                lastApiResponse = `Status: ${response.status}\nHeaders:\n  ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`;
                 showToast('Update successful');
+                addToApiCallHistory(lastApiCall, lastApiResponse);
                 runTest(); // Refresh the table
             })
             .catch(error => {
                 showToast(error.message, true);
+                addToApiCallHistory(lastApiCall, `Error: ${error.message}`);
             });
         }
 
@@ -221,6 +278,49 @@
                 currentSort.direction = 'asc';
             }
             runTest();
+        }
+
+        function toggleGeekMode() {
+            isGeekMode = !isGeekMode;
+            updateDebugTable();
+        }
+
+        function updateDebugTable() {
+            const debugContainer = document.getElementById('debug-table-container');
+            // Remove any existing debug table
+            const oldDebugTable = debugContainer.querySelector('.debug-table');
+            if (oldDebugTable) {
+                oldDebugTable.remove();
+            }
+            if (isGeekMode && apiCallHistory.length > 0) {
+                const debugTable = `
+                    <table class="debug-table">
+                        <tr>
+                            <th>Sr</th>
+                            <th>Timestamp</th>
+                            <th>API Call</th>
+                            <th>API Response</th>
+                        </tr>
+                        ${apiCallHistory.map(call => `
+                            <tr>
+                                <td>${call.serialNumber}</td>
+                                <td>${call.timestamp}</td>
+                                <td><div class="debug-content">${call.apiCall}</div></td>
+                                <td><div class="debug-content">${call.apiResponse}</div></td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                `;
+                debugContainer.insertAdjacentHTML('beforeend', debugTable);
+            }
+        }
+
+        function addToApiCallHistory(apiCall, apiResponse) {
+            const timestamp = new Date().toLocaleString();
+            apiCallHistory.unshift({ serialNumber: serialNumber++, timestamp, apiCall, apiResponse });
+            if (isGeekMode) {
+                updateDebugTable();
+            }
         }
 
         function runTest() {
@@ -239,10 +339,16 @@
                 url.searchParams.append('sort_dir', currentSort.direction);
             }
 
+            // Store the API call details
+            lastApiCall = `GET ${url.toString()}\nHeaders:\n  Accept: application/json`;
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     let filteredData = data.cities;
+                    
+                    // Store the API response details
+                    lastApiResponse = JSON.stringify(data, null, 2);
                     
                     let tableHTML = `
                         <table>
@@ -296,9 +402,11 @@
                     `;
                     
                     resultDiv.innerHTML = tableHTML;
+                    addToApiCallHistory(lastApiCall, lastApiResponse);
                 })
                 .catch(error => {
                     resultDiv.innerHTML = `Error: ${error.message}`;
+                    addToApiCallHistory(lastApiCall, `Error: ${error.message}`);
                 });
         }
 
